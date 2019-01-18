@@ -1,9 +1,9 @@
 const crypto = require('crypto');
 const { generateKeyPairSync } = crypto;
 
-const privateKey = process.env.My_PRIVATE_KEY;
 const secret = process.env.My_PRIVATE_SECRET;
-const publicKey = process.env.My_PUBLIC_KEY;
+const privateKey = process.env.My_PRIVATE_KEY && Buffer.from(process.env.My_PRIVATE_KEY, 'base64').toString();
+const publicKey = process.env.My_PUBLIC_KEY && Buffer.from(process.env.My_PUBLIC_KEY, 'base64').toString();
 
 /**
  *
