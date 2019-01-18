@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "*.js",
+      "use": "@now/node-server"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "./index.js"
+    }
+  ],
+  "env": {
+    "My_PRIVATE_KEY": "@my-private-key",
+    "My_PRIVATE_SECRET": "@my-private-secret",
+    "My_PUBLIC_KEY": "@my-public-key"
+  },
+  "github": {
+    "enabled": true
+  }
+}
