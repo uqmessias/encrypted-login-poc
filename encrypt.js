@@ -23,10 +23,9 @@ const onlyOdds = str => (
  */
 const hasher = (id, publicKey) => {
   const hash = `${id}${onlyOdds(publicKey)}${publicKey}`;
-
-  return crypto.createHmac('sha256', hash)
+  return crypto.createHash('sha256', hash)
     .update(hash)
-    .digest('hex')
+    .digest('hex');
 };
 
 /**

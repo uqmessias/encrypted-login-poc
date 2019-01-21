@@ -3,7 +3,7 @@ const https = require("https");
 const { generateKeyPairSync } = crypto;
 
 const SECRET = 'Eu sou demais, você também';
-const url = 'encrypted-login-poc-4yi0zd9g3.now.sh';
+const url = 'encrypted-login-poc-r6pyl9sqv.now.sh';
 const letMeInPath = '/let-me-in';
 const loginPath = '/login';
 
@@ -49,9 +49,9 @@ const hasher = (id, publicKey) => {
 
   const hash = `${id}${onlyOdds(publicKey)}${publicKey}`;
 
-  return crypto.createHmac('sha256', hash)
+  return crypto.createHash('sha256', hash)
     .update(hash)
-    .digest('hex')
+    .digest('hex');
 };
 
 const id = '1685d24b1e11685d24cf011685d24d259';
