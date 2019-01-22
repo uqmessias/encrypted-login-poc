@@ -1,13 +1,12 @@
 const crypto = require('crypto');
+const { connectAsync, getSecretAsync, setSecretAsync } = require('./database');
 const { generateKeyPairSync } = crypto;
 
-const secret = process.env.My_PRIVATE_SECRET;
-const privateKey = process.env.My_PRIVATE_KEY && Buffer.from(process.env.My_PRIVATE_KEY, 'base64').toString();
-const publicKey = process.env.My_PUBLIC_KEY && Buffer.from(process.env.My_PUBLIC_KEY, 'base64').toString();
+const SECRET = process.env.My_PRIVATE_SECRET;
 
 /**
  *
- * @param {string} str
+ * @param {string} strdddd
  * @returns {string}
  */
 const onlyOdds = str => (
@@ -53,12 +52,55 @@ const encryptToBase64 = (data, publicKey) => crypto.publicEncrypt({
 }, Buffer.from(data)).toString('base64');
 /**
  * 
+ * @param {string} data 
+ * @param {string} privateKey 
+ * @param {string} secret 
+ * @returns {string}
+ */
+const encryptPrivateToBase64 = (data, privateKey, secret) => crypto.privateEncrypt({
+  key: privateKey,
+  padding: crypto.constants.RSA_PKCS1_PADDING,
+  passphrase: secret,
+}, Buffer.from(data)).toString('base64');
+
+/**
+ * 
+ * @param {string} secret
+ * @returns {{ privateKey: string, publicKey: string }}
+ */
+function generateKeyPair(secret) {
+  return generateKeyPairSync('rsa', {
+    modulusLength: 2048,
+    publicKeyEncoding: {
+      type: 'spki',
+      format: 'pem'
+    },
+    privateKeyEncoding: {
+      type: 'pkcs8',
+      format: 'pem',
+      cipher: 'aes-256-cbc',
+      passphrase: secret
+    }
+  });
+}
+/**
+ * 
  * @param {{ data: string, lookAtMeNow: string }} preLoginCredentials
  * @returns {{ data: string, IAmLookingAtYou: string }} 
  */
-function getBackendKey({ data: mobileId, lookAtMeNow: clientPublicKey }) {
+async function getBackendKey({ data: mobileId, lookAtMeNow: clientPublicKey }) {
   if (!mobileId || !clientPublicKey) {
     throw new Error('The request body is invalid!');
+  }
+
+  const { publicKey, privateKey } = generateKeyPair(SECRET);
+  const db = await connectAsync();
+  try {
+    await setSecretAsync(mobileId, privateKey);
+  } catch (err) {
+    throw err;
+  } finally {
+    db.close();
   }
 
   if (!publicKey) {
@@ -76,25 +118,38 @@ function getBackendKey({ data: mobileId, lookAtMeNow: clientPublicKey }) {
 
 /**
  * 
- * @param {{ data: string }} credentials
+ * @param {{ id: string, data: string }} credentials
  * @returns {{ token: string }} 
  */
-function getLoginToken({ data: cryptedCredentials }) {
+function getLoginToken({ id: mobileId, data: cryptedCredentials }) {
   let decryptedCredentials;
 
-  if (!privateKey || !secret) {
+  const db = await connectAsync();
+  let privateKey;
+
+  try {
+    const secret = await getSecretAsync(mobileId);
+    privateKey = secret.data;
+  } catch (err) {
+    throw err;
+  } finally {
+    db.close();
+  }
+
+  if (!privateKey || !SECRET) {
     throw new Error('The server configuration is invalid!');
   }
 
   try {
-    decryptedCredentials = decrypt(cryptedCredentials, privateKey, secret).toString();
+    decryptedCredentials = decrypt(cryptedCredentials, privateKey, SECRET).toString();
   } finally { }
 
   const { login, password } = decryptedCredentials && JSON.parse(decryptedCredentials) || {};
 
   if (!!login && !!password) {
+    const logonDataReversed = JSON.stringify({ login, password }).split('').reverse().join('');
     return {
-      token: encryptToBase64(onlyOdds(JSON.stringify({ login, password })), publicKey),
+      token: encryptPrivateToBase64(onlyOdds(logonDataReversed, privateKey), privateKey, SECRET),
     };
   }
 

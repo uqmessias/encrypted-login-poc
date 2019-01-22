@@ -13,9 +13,7 @@
     }
   ],
   "env": {
-    "My_PRIVATE_KEY": "@my-private-key",
     "My_PRIVATE_SECRET": "@my-private-secret",
-    "My_PUBLIC_KEY": "@my-public-key",
     "MONGODB_URL": "@mongodb-privacy-url"
   },
   "github": {

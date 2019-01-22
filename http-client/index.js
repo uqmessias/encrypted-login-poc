@@ -54,7 +54,9 @@ const hasher = (id, publicKey) => {
     .digest('hex');
 };
 
-const id = '1685d24b1e11685d24cf011685d24d259';
+const idGenerator = () => new Array(4)
+  .map((_, index) => (new Date().getTime() + index).toString(16))
+  .join('');
 
 const decrypt = (data, privateKey, secret) => crypto.privateDecrypt({
   key: privateKey,
@@ -93,6 +95,7 @@ function generateKeyPair(secret) {
 async function doTheMagic() {
   const { publicKey: clientPublicKey, privateKey: clientPrivateKey } = generateKeyPair(SECRET);
 
+  const id = idGenerator();
   const letMeInbody = { data: id, lookAtMeNow: clientPublicKey };
   const backendKey = await post(url, letMeInPath, letMeInbody);
   console.log({ backendKey })
@@ -106,7 +109,7 @@ async function doTheMagic() {
   const loginAndPassword = JSON.stringify({ login, password });
   const cryptedCredentials = encryptToBase64(loginAndPassword, backendKey.IAmLookingAtYou);
 
-  const { token } = await post(url, loginPath, { data: cryptedCredentials });
+  const { token } = await post(url, loginPath, { id, data: cryptedCredentials });
 
   const withSpecialCharacteres = phrase => phrase.replace(/\n/g, '\\n');
 
