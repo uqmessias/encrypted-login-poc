@@ -1,5 +1,5 @@
-const crypto = require('crypto');
-const { connectAsync, getSecretAsync, setSecretAsync } = require('./database');
+import crypto from 'crypto';
+import { connectAsync, getSecretAsync, setSecretAsync } from './database';
 const { generateKeyPairSync } = crypto;
 
 const SECRET = process.env.My_PRIVATE_SECRET;
@@ -88,7 +88,7 @@ function generateKeyPair(secret) {
  * @param {{ data: string, lookAtMeNow: string }} preLoginCredentials
  * @returns {{ data: string, IAmLookingAtYou: string }} 
  */
-async function getBackendKey({ data: mobileId, lookAtMeNow: clientPublicKey }) {
+export async function getBackendKey({ data: mobileId, lookAtMeNow: clientPublicKey }) {
   if (!mobileId || !clientPublicKey) {
     throw new Error('The request body is invalid!');
   }
@@ -121,7 +121,7 @@ async function getBackendKey({ data: mobileId, lookAtMeNow: clientPublicKey }) {
  * @param {{ id: string, data: string }} credentials
  * @returns {{ token: string }} 
  */
-function getLoginToken({ id: mobileId, data: cryptedCredentials }) {
+export function getLoginToken({ id: mobileId, data: cryptedCredentials }) {
   let decryptedCredentials;
 
   const db = await connectAsync();
@@ -155,5 +155,3 @@ function getLoginToken({ id: mobileId, data: cryptedCredentials }) {
 
   throw new Error('The request body is invalid!');
 }
-
-module.exports = { getBackendKey, getLoginToken };

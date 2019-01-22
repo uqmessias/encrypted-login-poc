@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-function connectAsync() {
+export function connectAsync() {
   return new Promise(resolve => {
     if (!process.env.MONGODB_URL)
       throw new Error('There\'s no database URL connection available');
@@ -23,7 +23,7 @@ const SecretSchema = new mongoose.Schema({
 });
 const SecretModel = mongoose.model("secrets", SecretSchema);
 
-function getSecretAsync(deviceId: string) {
+export function getSecretAsync(deviceId) {
   return new Promise(resolve =>
     SecretModel.findOne({ deviceId }, async (err, secretDocument) => {
       if (!err && !!secretDocument) {
@@ -37,16 +37,10 @@ function getSecretAsync(deviceId: string) {
     }));
 }
 
-async function setSecretAsync(deviceId, privateKey) {
+export async function setSecretAsync(deviceId, privateKey) {
   return new Promise(async resolve => {
     const secretModel = new SecretModel({ deviceId, data: privateKey });
-    const brandItem = await secretModel.save();
-    resolve(brandItem);
+    const secretItem = await secretModel.save();
+    resolve(secretItem);
   });
 }
-
-module.exports = {
-  connectAsync,
-  getSecretAsync,
-  setSecretAsync,
-};

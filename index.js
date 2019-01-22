@@ -1,8 +1,8 @@
 // @ts-check
-const express = require('express');
-const bodyParser = require('body-parser');
+import express from 'express';
+import bodyParser from 'body-parser';
 
-const { getBackendKey, getLoginToken } = require('./encrypt');
+import { getBackendKey, getLoginToken } from './encrypt';
 
 const app = express();
 
