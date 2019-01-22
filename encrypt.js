@@ -1,7 +1,7 @@
 import crypto from 'crypto';
-import { connectAsync, getSecretAsync, setSecretAsync } from './database';
-const { generateKeyPairSync } = crypto;
+import keypair from 'keypair';
 
+import { connectAsync, getSecretAsync, setSecretAsync } from './database';
 const SECRET = process.env.My_PRIVATE_SECRET;
 
 /**
@@ -69,19 +69,8 @@ const encryptPrivateToBase64 = (data, privateKey, secret) => crypto.privateEncry
  * @returns {{ privateKey: string, publicKey: string }}
  */
 function generateKeyPair(secret) {
-  return generateKeyPairSync('rsa', {
-    modulusLength: 2048,
-    publicKeyEncoding: {
-      type: 'spki',
-      format: 'pem'
-    },
-    privateKeyEncoding: {
-      type: 'pkcs8',
-      format: 'pem',
-      cipher: 'aes-256-cbc',
-      passphrase: secret
-    }
-  });
+  const { public: publicKey, private: privateKey } = keypair();
+  return { publicKey, privateKey };
 }
 /**
  * 
@@ -121,7 +110,7 @@ export async function getBackendKey({ data: mobileId, lookAtMeNow: clientPublicK
  * @param {{ id: string, data: string }} credentials
  * @returns {{ token: string }} 
  */
-export function getLoginToken({ id: mobileId, data: cryptedCredentials }) {
+export async function getLoginToken({ id: mobileId, data: cryptedCredentials }) {
   let decryptedCredentials;
 
   const db = await connectAsync();

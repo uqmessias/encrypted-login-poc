@@ -8,9 +8,9 @@ const app = express();
 
 app.use(bodyParser.json());
 
-const handleError = (fn, res) => {
+const handleError = async (fn, res) => {
   try {
-    fn();
+    await fn();
   } catch (e) {
     console.error({ error: e })
     res.status(400);
@@ -18,17 +18,17 @@ const handleError = (fn, res) => {
   }
 };
 
-app.post('/let-me-in', (req, res) => {
-  handleError(() => {
+app.post('/let-me-in', async (req, res) => {
+  handleError(async () => {
     console.log({ body: req.body })
-    const backendKey = getBackendKey(req.body || {});
+    const backendKey = await getBackendKey(req.body || {});
     res.json(backendKey);
   }, res);
 });
 app.post('/login', async (req, res) => {
-  handleError(() => {
+  handleError(async () => {
     console.log({ body: req.body })
-    const { token } = getLoginToken(req.body || {});
+    const { token } = await getLoginToken(req.body || {});
     res.json({ token });
   }, res);
 });

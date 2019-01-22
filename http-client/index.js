@@ -3,7 +3,7 @@ const https = require("https");
 const { generateKeyPairSync } = crypto;
 
 const SECRET = 'Eu sou demais, você também';
-const url = 'encrypted-login-poc-r6pyl9sqv.now.sh';
+const url = 'encrypted-login-poc-23im34m6a.now.sh';
 const letMeInPath = '/let-me-in';
 const loginPath = '/login';
 
@@ -54,7 +54,7 @@ const hasher = (id, publicKey) => {
     .digest('hex');
 };
 
-const idGenerator = () => new Array(4)
+const idGenerator = () => Array.from(new Array(4))
   .map((_, index) => (new Date().getTime() + index).toString(16))
   .join('');
 
@@ -116,8 +116,8 @@ async function doTheMagic() {
   const apiContract = `\`\`\`
 >> POST domain/let-me-in
 {
-  data: "${id}",
-  lookAtMeNow: "${withSpecialCharacteres(clientPublicKey)}",
+  "data": "${id}",
+  "lookAtMeNow": "${withSpecialCharacteres(clientPublicKey)}"
 }
 << Response HTTP 200
 {
@@ -129,11 +129,12 @@ async function doTheMagic() {
 \`\`\`
 >> POST domain/login
 {
+  "id": "${id}",
   "data": "${withSpecialCharacteres(cryptedCredentials)}"
 }
 << Response  HTTP 200
 {
-  "token": "${withSpecialCharacteres(token)}",
+  "token": "${withSpecialCharacteres(token)}"
 }
 \`\`\`
 `;
