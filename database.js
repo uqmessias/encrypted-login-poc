@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-export function connectAsync() {
+function connectAsync() {
   return new Promise(resolve => {
     if (!process.env.MONGODB_URL)
       throw new Error('There\'s no database URL connection available');
@@ -19,28 +19,54 @@ export function connectAsync() {
 
 const SecretSchema = new mongoose.Schema({
   deviceId: String,
-  data: String,
+  privateKey: String,
 });
 const SecretModel = mongoose.model("secrets", SecretSchema);
 
 export function getSecretAsync(deviceId) {
-  return new Promise(resolve =>
-    SecretModel.findOne({ deviceId }, async (err, secretDocument) => {
-      if (!err && !!secretDocument) {
-        console.error("secret found", { secretDocument, err });
-        resolve(secretDocument);
-        return;
-      }
+  return new Promise(async resolve => {
 
-      console.error("brand not found", { deviceId, err });
-      resolve(null);
-    }));
+    const db = await connectAsync();
+    try {
+      SecretModel.findOne({ deviceId }, async (err, secretDocument) => {
+        if (!err && !!secretDocument) {
+          console.error("secret found", { secretDocument, err });
+          db.close();
+          resolve(secretDocument);
+          return;
+        }
+
+        console.error("secret not found", { deviceId, err });
+        throw err;
+      });
+    } catch (err) {
+      db.close();
+      throw err;
+    }
+  });
 }
 
 export async function setSecretAsync(deviceId, privateKey) {
   return new Promise(async resolve => {
-    const secretModel = new SecretModel({ deviceId, data: privateKey });
-    const secretItem = await secretModel.save();
-    resolve(secretItem);
+    const db = await connectAsync();
+    let updateResult;
+
+    try {
+      updateResult = await db
+        .collection('secrets')
+        .updateOne(
+          { deviceId },
+          { $set: { privateKey } },
+          { upsert: true },
+        );
+    } catch (err) {
+      console.error("secret not saved", { deviceId, err });
+      throw err;
+    }
+    finally {
+      db.close();
+    }
+    console.log('setSecretAsync', { updateResult });
+    resolve(updateResult);
   });
 }

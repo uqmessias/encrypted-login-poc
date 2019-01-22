@@ -72,6 +72,9 @@ function generateKeyPair(secret) {
   const { public: publicKey, private: privateKey } = keypair();
   return { publicKey, privateKey };
 }
+
+const ERROR_MESSAGE_CONFIG_INVALID = 'The server configuration is invalid!';
+const ERROR_MESSAGE_BODY_INVALID = 'The request body is invalid!';
 /**
  * 
  * @param {{ data: string, lookAtMeNow: string }} preLoginCredentials
@@ -79,30 +82,32 @@ function generateKeyPair(secret) {
  */
 export async function getBackendKey({ data: mobileId, lookAtMeNow: clientPublicKey }) {
   if (!mobileId || !clientPublicKey) {
-    throw new Error('The request body is invalid!');
+    throw new Error(ERROR_MESSAGE_BODY_INVALID);
   }
 
   const { publicKey, privateKey } = generateKeyPair(SECRET);
-  const db = await connectAsync();
   try {
     await setSecretAsync(mobileId, privateKey);
   } catch (err) {
     throw err;
-  } finally {
-    db.close();
   }
 
   if (!publicKey) {
-    throw new Error('The server configuration is invalid!');
+    throw new Error(ERROR_MESSAGE_CONFIG_INVALID);
   }
 
   const mobileIdHash = hasher(mobileId, publicKey);
-  const cryptedHash = encryptToBase64(mobileIdHash, clientPublicKey);
+  try {
+    const cryptedHash = encryptToBase64(mobileIdHash, clientPublicKey);
 
-  return {
-    data: cryptedHash,
-    IAmLookingAtYou: publicKey,
-  };
+    return {
+      data: cryptedHash,
+      IAmLookingAtYou: publicKey,
+    };
+  } catch (err) {
+    console.error(`Error on trying to encrypt "${mobileIdHash}": ${err.message}`);
+    throw new Error(ERROR_MESSAGE_BODY_INVALID);
+  }
 }
 
 /**
@@ -113,34 +118,36 @@ export async function getBackendKey({ data: mobileId, lookAtMeNow: clientPublicK
 export async function getLoginToken({ id: mobileId, data: cryptedCredentials }) {
   let decryptedCredentials;
 
-  const db = await connectAsync();
   let privateKey;
 
   try {
     const secret = await getSecretAsync(mobileId);
-    privateKey = secret.data;
+    console.log({ secret })
+    privateKey = secret.privateKey;
   } catch (err) {
     throw err;
-  } finally {
-    db.close();
   }
 
   if (!privateKey || !SECRET) {
-    throw new Error('The server configuration is invalid!');
+    throw new Error(ERROR_MESSAGE_CONFIG_INVALID);
   }
 
   try {
     decryptedCredentials = decrypt(cryptedCredentials, privateKey, SECRET).toString();
-  } finally { }
+  } catch (err) {
+    console.error(`Error on trying to decrypt "${cryptedCredentials}": ${err.message}`);
+    throw new Error(ERROR_MESSAGE_BODY_INVALID);
+  }
 
   const { login, password } = decryptedCredentials && JSON.parse(decryptedCredentials) || {};
 
   if (!!login && !!password) {
     const logonDataReversed = JSON.stringify({ login, password }).split('').reverse().join('');
+    console.warn('Login success!', { login, password });
     return {
       token: encryptPrivateToBase64(onlyOdds(logonDataReversed, privateKey), privateKey, SECRET),
     };
   }
 
-  throw new Error('The request body is invalid!');
+  throw new Error(ERROR_MESSAGE_BODY_INVALID);
 }

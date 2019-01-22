@@ -3,7 +3,7 @@ const https = require("https");
 const { generateKeyPairSync } = crypto;
 
 const SECRET = 'Eu sou demais, você também';
-const url = 'encrypted-login-poc-23im34m6a.now.sh';
+const url = 'encrypted-login-poc-7db29bkq2.now.sh';
 const letMeInPath = '/let-me-in';
 const loginPath = '/login';
 
@@ -109,7 +109,9 @@ async function doTheMagic() {
   const loginAndPassword = JSON.stringify({ login, password });
   const cryptedCredentials = encryptToBase64(loginAndPassword, backendKey.IAmLookingAtYou);
 
-  const { token } = await post(url, loginPath, { id, data: cryptedCredentials });
+  const loginResponse = await post(url, loginPath, { id, data: cryptedCredentials });
+  console.log({ loginResponse })
+  const { token } = loginResponse;
 
   const withSpecialCharacteres = phrase => phrase.replace(/\n/g, '\\n');
 
@@ -134,7 +136,7 @@ async function doTheMagic() {
 }
 << Response  HTTP 200
 {
-  "token": "${withSpecialCharacteres(token)}"
+  "token": "${withSpecialCharacteres(token || '')}"
 }
 \`\`\`
 `;
