@@ -7,6 +7,13 @@ const url = 'encrypted-login-poc-7db29bkq2.now.sh';
 const letMeInPath = '/let-me-in';
 const loginPath = '/login';
 
+/**
+ * 
+ * @param {string} hostname 
+ * @param {string} path 
+ * @param {any} body 
+ * @returns {any}
+ */
 async function post(hostname, path, body) {
   return new Promise(resolve => {
     const htttpsOptions = {
@@ -39,45 +46,40 @@ async function post(hostname, path, body) {
 /**
  *
  * @param {string} str
+ * @returns {string}
  */
 const onlyOdds = str => (
   str.split('')
     .filter((_, index) => (index % 2) !== 0)
     .join('')
 );
-const hasher = (id, publicKey) => {
 
-  const hash = `${id}${onlyOdds(publicKey)}${publicKey}`;
+/**
+ * 
+ * @param {string} deviceId 
+ * @param {string} publicKey 
+ * @returns {string}
+ */
+const hasher = (deviceId, publicKey) => {
+  const hash = `${deviceId}${onlyOdds(publicKey)}${publicKey}`;
 
   return crypto.createHash('sha256', hash)
     .update(hash)
     .digest('hex');
 };
 
-const idGenerator = () => Array.from(new Array(4))
+/**
+ * @returns {string} Generated id in hex
+ */
+const generateNewId = () => Array.from(new Array(4))
   .map((_, index) => (new Date().getTime() + index).toString(16))
   .join('');
 
-const decrypt = (data, privateKey, secret) => crypto.privateDecrypt({
-  key: privateKey,
-  padding: crypto.constants.RSA_PKCS1_PADDING,
-  passphrase: secret,
-}, Buffer.from(data, 'base64'));
-
-const encryptToBase64 = (data, publicKey) => crypto.publicEncrypt({
-  key: publicKey,
-  padding: crypto.constants.RSA_PKCS1_PADDING,
-}, Buffer.from(data)).toString('base64');
-
-const areHashesTheSame = (cryptedHash, deviceId, hashPublicKey, privateKey, secret) => {
-  const clientHash = hasher(deviceId, hashPublicKey);
-  const decryptedBackHash = decrypt(cryptedHash, privateKey, secret).toString();
-
-  return decryptedBackHash === clientHash
-};
-
-function generateKeyPair(secret) {
-  return generateKeyPairSync('rsa', {
+/**
+ * @returns {{ privateKey: string, publicKey: string }} Public and Private RSA key
+ */
+const generateKeyPair = secret => (
+  generateKeyPairSync('rsa', {
     modulusLength: 2048,
     publicKeyEncoding: {
       type: 'spki',
@@ -89,13 +91,53 @@ function generateKeyPair(secret) {
       cipher: 'aes-256-cbc',
       passphrase: secret
     }
-  });
-}
+  })
+);
+
+/**
+ * 
+ * @param {string} data 
+ * @param {string} privateKey 
+ * @param {string} secret 
+ * @returns {Buffer}
+ */
+const decrypt = (data, privateKey, secret) => crypto.privateDecrypt({
+  key: privateKey,
+  padding: crypto.constants.RSA_PKCS1_PADDING,
+  passphrase: secret,
+}, Buffer.from(data, 'base64'));
+
+/**
+ * 
+ * @param {string} data 
+ * @param {string} publicKey 
+ * @returns {string}
+ */
+const encryptToBase64 = (data, publicKey) => crypto.publicEncrypt({
+  key: publicKey,
+  padding: crypto.constants.RSA_PKCS1_PADDING,
+}, Buffer.from(data)).toString('base64');
+
+/**
+ * 
+ * @param {string} cryptedHash 
+ * @param {string} deviceId 
+ * @param {string} hashPublicKey 
+ * @param {string} privateKey
+ * @param {string} secret 
+ * @returns {boolean} 
+ */
+const areHashesTheSame = (cryptedHash, deviceId, hashPublicKey, privateKey, secret) => {
+  const clientHash = hasher(deviceId, hashPublicKey);
+  const decryptedBackHash = decrypt(cryptedHash, privateKey, secret).toString();
+
+  return decryptedBackHash === clientHash
+};
 
 async function doTheMagic() {
   const { publicKey: clientPublicKey, privateKey: clientPrivateKey } = generateKeyPair(SECRET);
 
-  const id = idGenerator();
+  const id = generateNewId();
   const letMeInbody = { data: id, lookAtMeNow: clientPublicKey };
   const backendKey = await post(url, letMeInPath, letMeInbody);
   console.log({ backendKey })
