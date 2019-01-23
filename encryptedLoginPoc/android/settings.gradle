@@ -1,0 +1,3 @@
+rootProject.name = 'encryptedLoginPoc'
+
+include ':app'
